@@ -1,0 +1,35 @@
+# Python environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Test, coverage, and packaging artifacts
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Node dependencies and logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Flask-local data and secrets
+instance/
+.env
+.env.*
+!.env.example
+
+# OS and editor metadata
+.DS_Store
+.idea/

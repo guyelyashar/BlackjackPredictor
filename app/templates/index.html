@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Blackjack Predictor</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+        <script src="{{ url_for('static', filename='js/script.js') }}" defer></script>
+    </head>
+    <body>
+        <main class="min-h-screen p-4 sm:p-8">
+            <div class="mb-6 flex items-center justify-between gap-4">
+                <h1 class="text-3xl font-bold">BlackjackPredictor</h1>
+                <form method="post">
+                    <button class="btn btn-error" type="submit" name="action" value="reset">Reset</button>
+                </form>
+            </div>
+            <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,28rem)_minmax(0,1fr)]">
+                <div>
+            <form method="post" class="card max-w-md border border-base-300 bg-base-100 shadow-sm">
+                <input type="hidden" name="form_name" value="table_statistics">
+                <fieldset class="card-body gap-4">
+                    <legend class="text-xl font-semibold">Table</legend>
+
+                    <div class="form-control">
+                        <label class="label" for="num-decks">
+                            <span class="label-text">Number of Decks</span>
+                        </label>
+                        <input
+                            class="input input-bordered w-full{% if errors.get('num_of_decks') %} input-error{% endif %}"
+                            id="num-decks"
+                            name="num_of_decks"
+                            type="number"
+                            min="1"
+                            step="1"
+                            value="{{ num_of_decks }}"
+                            {% if errors.get('num_of_decks') %}aria-describedby="num-decks-error"{% endif %}
+                            {% if table_locked %}readonly aria-readonly="true"{% endif %}
+                            required
+                        >
+                        {% if errors.get('num_of_decks') %}
+                        <p class="label-text-alt text-error" id="num-decks-error" role="alert">{{ errors['num_of_decks'] }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" for="num-players">
+                            <span class="label-text">Number of Players Before You</span>
+                        </label>
+                        <input
+                            class="input input-bordered w-full{% if errors.get('num_players') %} input-error{% endif %}"
+                            id="num-players"
+                            name="num_players"
+                            type="number"
+                            min="0"
+                            step="1"
+                            value="{{ num_players }}"
+                            {% if errors.get('num_players') %}aria-describedby="num-players-error"{% endif %}
+                            {% if table_locked %}readonly aria-readonly="true"{% endif %}
+                            required
+                        >
+                        {% if errors.get('num_players') %}
+                        <p class="label-text-alt text-error" id="num-players-error" role="alert">{{ errors['num_players'] }}</p>
+                        {% endif %}
+                    </div>
+
+                    <button class="btn btn-primary mt-2" type="submit" {% if table_locked %}disabled{% endif %}>Update table statistics</button>
+                </fieldset>
+            </form>
+
+            <form method="post" class="card mt-8 max-w-md border border-base-300 bg-base-100 shadow-sm">
+                <input type="hidden" name="form_name" value="round_statistics">
+                <input type="hidden" name="num_of_decks" value="{{ num_of_decks }}">
+                <input type="hidden" name="num_players" value="{{ num_players }}">
+                <input type="hidden" name="table_locked" value="{{ table_locked | lower }}">
+                {% for index in locked_player_card_indices %}
+                <input type="hidden" name="locked_player_cards" value="{{ index }}">
+                {% endfor %}
+                <input type="hidden" name="dealer_card_locked" value="{{ dealer_card_locked | lower }}">
+                <fieldset class="card-body gap-4">
+                    <legend class="text-xl font-semibold">Round Statistics</legend>
+                    {% if errors.get('round_statistics') %}
+                    <p class="text-error" role="alert">{{ errors['round_statistics'] }}</p>
+                    {% endif %}
+
+                    <div class="space-y-4" id="player-card-inputs" data-card-count="{{ player_card_values|length }}">
+                        {% for card in player_card_values %}
+                        <div class="form-control" data-player-card>
+                            <label class="label" for="player-card-{{ loop.index }}">
+                                <span class="label-text">Card {{ loop.index }}</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input
+                                    class="input input-bordered min-w-0 flex-1{% if errors.get('player_card_' ~ loop.index) %} input-error{% endif %}"
+                                    id="player-card-{{ loop.index }}"
+                                    name="player_cards"
+                                    type="text"
+                                    list="card-options"
+                                    value="{{ card }}"
+                                    placeholder="Search cards"
+                                    autocomplete="off"
+                                    {% if errors.get('player_card_' ~ loop.index) %}aria-describedby="player-card-{{ loop.index }}-error"{% endif %}
+                                    {% if loop.index in locked_player_card_indices %}readonly aria-readonly="true"{% endif %}
+                                >
+                                <button class="btn btn-secondary" type="submit" name="submitted_card" value="player-card-{{ loop.index }}" {% if loop.index in locked_player_card_indices %}disabled{% endif %}>Submit</button>
+                            </div>
+                            {% if errors.get('player_card_' ~ loop.index) %}
+                            <p class="label-text-alt text-error" id="player-card-{{ loop.index }}-error" role="alert">{{ errors['player_card_' ~ loop.index] }}</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <button class="btn btn-outline btn-sm self-start" id="add-card-button" type="button">
+                        <svg aria-hidden="true" class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+                        </svg>
+                        Add Card
+                    </button>
+
+                    <div class="form-control">
+                        <label class="label" for="dealer-card">
+                            <span class="label-text">Dealer Upcard</span>
+                        </label>
+                        <div class="flex gap-2">
+                            <input
+                                class="input input-bordered min-w-0 flex-1{% if errors.get('dealer_card') %} input-error{% endif %}"
+                                id="dealer-card"
+                                name="dealer_card"
+                                type="text"
+                                list="card-options"
+                                value="{{ dealer_card }}"
+                                placeholder="Search cards"
+                                autocomplete="off"
+                                {% if errors.get('dealer_card') %}aria-describedby="dealer-card-error"{% endif %}
+                                {% if dealer_card_locked %}readonly aria-readonly="true"{% endif %}
+                            >
+                            <button class="btn btn-secondary" type="submit" name="submitted_card" value="dealer-card" {% if dealer_card_locked %}disabled{% endif %}>Submit</button>
+                        </div>
+                        {% if errors.get('dealer_card') %}
+                        <p class="label-text-alt text-error" id="dealer-card-error" role="alert">{{ errors['dealer_card'] }}</p>
+                        {% endif %}
+                    </div>
+
+                    <button class="btn btn-outline" type="submit" name="action" value="new_round">New Round</button>
+                </fieldset>
+            </form>
+
+            <datalist id="card-options">
+                {% for card in card_options %}
+                <option value="{{ card }}"></option>
+                {% endfor %}
+            </datalist>
+                </div>
+
+                <aside aria-labelledby="prediction-title" class="ml-auto w-full lg:max-w-md lg:pt-2">
+                    <h2 class="mb-3 text-right text-xl font-semibold" id="prediction-title">Prediction</h2>
+                    <div class="flex flex-col items-end gap-3" aria-live="polite">
+                        {% for prediction in prediction_log %}
+                        <div class="chat chat-end">
+                            <div class="chat-bubble text-left">
+                                <p class="font-semibold">Winning Percentage: {{ '%.1f'|format(prediction['winning_percent']) }}%</p>
+                                <p class="mt-1 text-sm">Player: {{ prediction['user_hand'] }} · Dealer: {{ prediction['dealer_card'] }}</p>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="chat chat-start">
+                        </div>
+                        {% endfor %}
+                    </div>
+                </aside>
+            </div>
+        </main>
+    </body>
+</html>

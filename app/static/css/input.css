@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* Include project-specific CSS in the generated Tailwind stylesheet. */
+@import "./style.css";
