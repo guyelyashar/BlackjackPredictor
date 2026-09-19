@@ -109,6 +109,21 @@ def home():
             if dealer_card_error:
                 errors["dealer_card"] = dealer_card_error
 
+            submitted_card = request.form.get("submitted_card", "")
+            if submitted_card.startswith("player-card-"):
+                card_index = submitted_card.removeprefix("player-card-")
+                if card_index.isdigit():
+                    player_card_index = int(card_index) - 1
+                    if (
+                        0 <= player_card_index < len(player_card_values)
+                        and not player_card_values[player_card_index].strip()
+                    ):
+                        errors[f"player_card_{player_card_index + 1}"] = (
+                            f"Card {player_card_index + 1} cannot be empty."
+                        )
+            elif submitted_card == "dealer-card" and not dealer_card.strip():
+                errors["dealer_card"] = "Dealer upcard cannot be empty."
+
             if request.form.get("action") == "new_round":
                 cards_to_discard = user_hand + ([dealer_card] if dealer_card else [])
                 if not cards_fit_in_shoe(discarded_cards + cards_to_discard, num_of_decks):
@@ -138,6 +153,10 @@ def home():
             if dealer_card:
                 discarded_cards.append(dealer_card)
             session["discarded_cards"] = discarded_cards
+            if prediction_log:
+                prediction_log.append({"type": "round_break"})
+                prediction_log = prediction_log[-PREDICTION_LOG_LIMIT:]
+                session["prediction_log"] = prediction_log
             user_hand = []
             dealer_card = ""
             player_card_values = ["", ""]
@@ -161,6 +180,7 @@ def home():
         )
         prediction_log.append(
             {
+                "type": "prediction",
                 "user_hand": ", ".join(user_hand),
                 "dealer_card": dealer_card,
                 "winning_percent": round(winning_percent, 1),

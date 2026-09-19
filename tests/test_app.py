@@ -117,6 +117,32 @@ def test_round_statistics_submission_rejects_invalid_card_names(client) -> None:
     assert b"Card 2 must be a valid card." in response.data
 
 
+@pytest.mark.parametrize(
+    ("submitted_card", "message"),
+    [
+        ("player-card-1", b"Card 1 cannot be empty."),
+        ("dealer-card", b"Dealer upcard cannot be empty."),
+    ],
+)
+def test_round_statistics_submission_rejects_an_empty_selected_card(
+    client, submitted_card: str, message: bytes
+) -> None:
+    response = client.post(
+        "/",
+        data={
+            "form_name": "round_statistics",
+            "num_of_decks": "2",
+            "num_players": "1",
+            "player_cards": ["", ""],
+            "dealer_card": "",
+            "submitted_card": submitted_card,
+        },
+    )
+
+    assert response.status_code == 400
+    assert message in response.data
+
+
 def test_prediction_waits_for_two_player_cards_and_a_dealer_upcard(
     client, monkeypatch
 ) -> None:
@@ -208,6 +234,54 @@ def test_new_round_discards_current_cards_and_resets_round_statistics(
         assert flask_session["discarded_cards"] == ["Ace", "Ten", "Nine"]
 
 
+def test_new_round_adds_a_divider_after_existing_predictions(client, monkeypatch) -> None:
+    monkeypatch.setattr(
+        app_module.predictor,
+        "run_predictor",
+        lambda *_: pytest.fail("Starting a new round does not calculate a prediction."),
+    )
+    with client.session_transaction() as flask_session:
+        flask_session["prediction_log"] = [
+            {
+                "user_hand": "Ace, Ten",
+                "dealer_card": "Nine",
+                "winning_percent": 50.0,
+            }
+        ]
+
+    response = client.post(
+        "/",
+        data={
+            "form_name": "round_statistics",
+            "num_of_decks": "2",
+            "num_players": "1",
+            "player_cards": ["Ace", "Ten"],
+            "dealer_card": "Nine",
+            "action": "new_round",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"New round" in response.data
+    assert response.data.index(b"Winning percentage: 50.0%") < response.data.index(
+        b"New round"
+    )
+
+
+def test_prediction_log_badge_excludes_round_breaks(client) -> None:
+    with client.session_transaction() as flask_session:
+        flask_session["prediction_log"] = [
+            {"winning_percent": 50.0},
+            {"type": "round_break"},
+            {"winning_percent": 60.0},
+        ]
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert b'<span class="badge badge-outline">2</span>' in response.data
+
+
 def test_predictor_removes_known_cards_from_a_fresh_shoe(monkeypatch) -> None:
     predictor = Predictor()
     captured_cards: list[str] = []
@@ -288,6 +362,25 @@ def test_reset_clears_session_data_and_returns_to_initial_page(client) -> None:
     assert b"Winning percentage: 50.0%" not in initial_page.data
 
 
+def test_page_includes_a_theme_toggle_next_to_reset(client) -> None:
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert b'data-theme-toggle' in response.data
+    assert b'type="button"' in response.data
+    assert b'role="switch"' in response.data
+    assert b'data-theme-knob' in response.data
+    assert b'cursor-pointer' in response.data
+    assert b'border border-base-content/30' in response.data
+    assert b'bg-primary' not in response.data
+    assert b'data-theme-icon="light"' in response.data
+    assert b'data-theme-icon="dark"' in response.data
+    assert b'data-theme-label' not in response.data
+    assert b">Light</span>" not in response.data
+    assert b">Dark</span>" not in response.data
+    assert response.data.index(b'data-theme-toggle') < response.data.index(b">Reset</button>")
+
+
 def test_round_statistics_form_starts_with_two_searchable_card_inputs(
     client, monkeypatch
 ) -> None:
@@ -310,7 +403,7 @@ def test_table_statistics_fields_lock_after_update(client, monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.data.count(b'aria-readonly="true"') == 2
-    assert b"Update table statistics</button>" in response.data
+    assert b"Update table settings</button>" in response.data
 
 
 def test_submitted_player_card_locks_while_other_card_remains_editable(

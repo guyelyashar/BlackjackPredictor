@@ -1,30 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Blackjack Predictor</title>
+        <title>BlackjackPredictor</title>
+        <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
         <script src="{{ url_for('static', filename='js/script.js') }}" defer></script>
     </head>
     <body>
-        <main class="min-h-screen p-4 sm:p-8">
+        <main class="min-h-screen bg-base-200 p-4 sm:p-6 lg:p-8">
+            <div class="mx-auto max-w-7xl">
             <div class="mb-6 flex items-center justify-between gap-4">
-                <h1 class="text-3xl font-bold">BlackjackPredictor</h1>
-                <form method="post">
-                    <button class="btn btn-error" type="submit" name="action" value="reset">Reset</button>
-                </form>
-            </div>
-            <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,28rem)_minmax(0,1fr)]">
                 <div>
-            <form method="post" class="card max-w-md border border-base-300 bg-base-100 shadow-sm">
+                    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">BlackjackPredictor</h1>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button
+                        class="relative inline-flex h-10 w-16 shrink-0 cursor-pointer items-center rounded-full border border-base-content/30 bg-base-300 p-1 transition-colors duration-300 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-reduce:transition-none"
+                        type="button"
+                        role="switch"
+                        data-theme-toggle
+                        aria-label="Switch to dark mode"
+                        aria-checked="false"
+                    >
+                        <span class="flex size-8 translate-x-0 items-center justify-center rounded-full bg-base-100 shadow-sm transition-transform duration-300 ease-out motion-reduce:transition-none" data-theme-knob>
+                            <svg aria-hidden="true" class="absolute size-4 opacity-100 transition-all duration-300 ease-out motion-reduce:transition-none" data-theme-icon="light" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M12 3v2m0 14v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M3 12h2m14 0h2M4.22 19.78l1.42-1.42m12.72-12.72 1.42-1.42M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z" stroke-linecap="round"></path>
+                            </svg>
+                            <svg aria-hidden="true" class="absolute size-4 rotate-90 scale-0 opacity-0 transition-all duration-300 ease-out motion-reduce:transition-none" data-theme-icon="dark" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                        </span>
+                    </button>
+                    <form method="post">
+                        <button class="btn btn-error btn-sm sm:btn-md" type="submit" name="action" value="reset">Reset</button>
+                    </form>
+                </div>
+            </div>
+            <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,30rem)_minmax(22rem,1fr)] lg:gap-10">
+                <div class="space-y-6">
+            <form method="post" class="card border border-base-300 bg-base-100 shadow-sm">
                 <input type="hidden" name="form_name" value="table_statistics">
-                <fieldset class="card-body gap-4">
-                    <legend class="text-xl font-semibold">Table</legend>
+                <fieldset class="card-body gap-4 pt-6">
+                    <legend class="pt-2 text-lg font-semibold">Table</legend>
 
                     <div class="form-control">
                         <label class="label" for="num-decks">
-                            <span class="label-text">Number of Decks</span>
+                            <span class="label-text font-medium">Number of Decks</span>
                         </label>
                         <input
                             class="input input-bordered w-full{% if errors.get('num_of_decks') %} input-error{% endif %}"
@@ -45,7 +68,7 @@
 
                     <div class="form-control">
                         <label class="label" for="num-players">
-                            <span class="label-text">Number of Players Before You</span>
+                            <span class="label-text font-medium">Players Before You</span>
                         </label>
                         <input
                             class="input input-bordered w-full{% if errors.get('num_players') %} input-error{% endif %}"
@@ -64,11 +87,11 @@
                         {% endif %}
                     </div>
 
-                    <button class="btn btn-primary mt-2" type="submit" {% if table_locked %}disabled{% endif %}>Update table statistics</button>
+                    <button class="btn btn-primary mt-2" type="submit" {% if table_locked %}disabled{% endif %}>Update Table Settings</button>
                 </fieldset>
             </form>
 
-            <form method="post" class="card mt-8 max-w-md border border-base-300 bg-base-100 shadow-sm">
+            <form method="post" class="card border border-base-300 bg-base-100 shadow-sm">
                 <input type="hidden" name="form_name" value="round_statistics">
                 <input type="hidden" name="num_of_decks" value="{{ num_of_decks }}">
                 <input type="hidden" name="num_players" value="{{ num_players }}">
@@ -77,8 +100,8 @@
                 <input type="hidden" name="locked_player_cards" value="{{ index }}">
                 {% endfor %}
                 <input type="hidden" name="dealer_card_locked" value="{{ dealer_card_locked | lower }}">
-                <fieldset class="card-body gap-4">
-                    <legend class="text-xl font-semibold">Round Statistics</legend>
+                <fieldset class="card-body gap-4 pt-6">
+                    <legend class="pt-2 text-lg font-semibold">Round</legend>
                     {% if errors.get('round_statistics') %}
                     <p class="text-error" role="alert">{{ errors['round_statistics'] }}</p>
                     {% endif %}
@@ -87,22 +110,28 @@
                         {% for card in player_card_values %}
                         <div class="form-control" data-player-card>
                             <label class="label" for="player-card-{{ loop.index }}">
-                                <span class="label-text">Card {{ loop.index }}</span>
+                                <span class="label-text font-medium">Card {{ loop.index }}</span>
+                                {% if loop.index in locked_player_card_indices %}
+                                <span class="label-text-alt inline-flex items-center gap-1 text-base-content/60">
+                                    <svg aria-hidden="true" class="size-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect height="11" rx="2" width="14" x="5" y="11"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+                                    Locked
+                                </span>
+                                {% endif %}
                             </label>
                             <div class="flex gap-2">
                                 <input
-                                    class="input input-bordered min-w-0 flex-1{% if errors.get('player_card_' ~ loop.index) %} input-error{% endif %}"
+                                    class="input input-bordered min-w-0 flex-1{% if errors.get('player_card_' ~ loop.index) %} input-error{% endif %}{% if loop.index in locked_player_card_indices %} bg-base-200 text-base-content/70{% endif %}"
                                     id="player-card-{{ loop.index }}"
                                     name="player_cards"
                                     type="text"
                                     list="card-options"
                                     value="{{ card }}"
-                                    placeholder="Search cards"
+                                    placeholder="Search Cards"
                                     autocomplete="off"
                                     {% if errors.get('player_card_' ~ loop.index) %}aria-describedby="player-card-{{ loop.index }}-error"{% endif %}
                                     {% if loop.index in locked_player_card_indices %}readonly aria-readonly="true"{% endif %}
                                 >
-                                <button class="btn btn-secondary" type="submit" name="submitted_card" value="player-card-{{ loop.index }}" {% if loop.index in locked_player_card_indices %}disabled{% endif %}>Submit</button>
+                                <button class="btn btn-primary btn-sm self-center" type="submit" name="submitted_card" value="player-card-{{ loop.index }}" data-card-submit {% if loop.index in locked_player_card_indices or not card|trim %}disabled{% endif %}>Submit</button>
                             </div>
                             {% if errors.get('player_card_' ~ loop.index) %}
                             <p class="label-text-alt text-error" id="player-card-{{ loop.index }}-error" role="alert">{{ errors['player_card_' ~ loop.index] }}</p>
@@ -111,7 +140,7 @@
                         {% endfor %}
                     </div>
 
-                    <button class="btn btn-outline btn-sm self-start" id="add-card-button" type="button">
+                    <button class="btn btn-outline btn-secondary btn-sm self-start" id="add-card-button" type="button">
                         <svg aria-hidden="true" class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path d="M12 5v14M5 12h14" stroke-linecap="round" />
                         </svg>
@@ -120,29 +149,35 @@
 
                     <div class="form-control">
                         <label class="label" for="dealer-card">
-                            <span class="label-text">Dealer Upcard</span>
+                            <span class="label-text font-medium">Dealer Upcard</span>
+                            {% if dealer_card_locked %}
+                            <span class="label-text-alt inline-flex items-center gap-1 text-base-content/60">
+                                <svg aria-hidden="true" class="size-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect height="11" rx="2" width="14" x="5" y="11"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+                                Locked
+                            </span>
+                            {% endif %}
                         </label>
                         <div class="flex gap-2">
                             <input
-                                class="input input-bordered min-w-0 flex-1{% if errors.get('dealer_card') %} input-error{% endif %}"
+                                class="input input-bordered min-w-0 flex-1{% if errors.get('dealer_card') %} input-error{% endif %}{% if dealer_card_locked %} bg-base-200 text-base-content/70{% endif %}"
                                 id="dealer-card"
                                 name="dealer_card"
                                 type="text"
                                 list="card-options"
                                 value="{{ dealer_card }}"
-                                placeholder="Search cards"
+                                placeholder="Search Cards"
                                 autocomplete="off"
                                 {% if errors.get('dealer_card') %}aria-describedby="dealer-card-error"{% endif %}
                                 {% if dealer_card_locked %}readonly aria-readonly="true"{% endif %}
                             >
-                            <button class="btn btn-secondary" type="submit" name="submitted_card" value="dealer-card" {% if dealer_card_locked %}disabled{% endif %}>Submit</button>
+                            <button class="btn btn-primary btn-sm self-center" type="submit" name="submitted_card" value="dealer-card" data-card-submit {% if dealer_card_locked or not dealer_card|trim %}disabled{% endif %}>Submit</button>
                         </div>
                         {% if errors.get('dealer_card') %}
                         <p class="label-text-alt text-error" id="dealer-card-error" role="alert">{{ errors['dealer_card'] }}</p>
                         {% endif %}
                     </div>
 
-                    <button class="btn btn-outline" type="submit" name="action" value="new_round">New Round</button>
+                    <button class="btn btn-outline btn-secondary mt-2" type="submit" name="action" value="new_round">New Round</button>
                 </fieldset>
             </form>
 
@@ -153,22 +188,34 @@
             </datalist>
                 </div>
 
-                <aside aria-labelledby="prediction-title" class="ml-auto w-full lg:max-w-md lg:pt-2">
-                    <h2 class="mb-3 text-right text-xl font-semibold" id="prediction-title">Prediction</h2>
-                    <div class="flex flex-col items-end gap-3" aria-live="polite">
+                <aside aria-labelledby="prediction-title" class="w-full lg:sticky lg:top-8">
+                    <div class="rounded-box border border-base-300 bg-base-100 p-4 shadow-sm sm:p-5">
+                    <div class="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                            <h2 class="text-lg font-semibold" id="prediction-title">Prediction Log</h2>
+                        </div>
+                        <span class="badge badge-outline">{{ prediction_log|rejectattr('type', 'equalto', 'round_break')|list|length }}</span>
+                    </div>
+                    <div class="max-h-[calc(100vh-12rem)] space-y-3 overflow-y-auto pr-1" aria-live="polite">
                         {% for prediction in prediction_log %}
-                        <div class="chat chat-end">
-                            <div class="chat-bubble text-left">
+                        {% if prediction.get('type') == 'round_break' %}
+                        <div class="divider my-2 text-xs font-medium uppercase tracking-wide text-base-content/50">New round</div>
+                        {% else %}
+                        <div class="chat chat-start">
+                            <div class="rounded-box border border-dashed border-base-300 bg-base-200 p-4 text-sm text-base-content/70">
                                 <p class="font-semibold">Winning Percentage: {{ '%.1f'|format(prediction['winning_percent']) }}%</p>
                                 <p class="mt-1 text-sm">Player: {{ prediction['user_hand'] }} · Dealer: {{ prediction['dealer_card'] }}</p>
                             </div>
                         </div>
+                        {% endif %}
                         {% else %}
-                        <div class="chat chat-start">
+                        <div class="rounded-box border border-dashed border-base-300 bg-base-200 p-4 text-sm text-base-content/70">
                         </div>
                         {% endfor %}
                     </div>
+                    </div>
                 </aside>
+            </div>
             </div>
         </main>
     </body>
