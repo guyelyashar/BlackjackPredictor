@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: light --default, dark;
+  themes: light, dark --default;
 }
 
 /* Include project-specific CSS in the generated Tailwind stylesheet. */

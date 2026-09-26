@@ -27,8 +27,8 @@ CARD_NAMES: tuple[str, ...] = (
 
 
 def parse_positive_integer(value: str | None, field_label: str, min_value: int) -> tuple[int, str | None]:
-    if value is None or not value.isdigit() or int(value) < 1:
-        return 1, f"{field_label} must be a whole number greater than {min_value}."
+    if value is None or not value.isdigit() or int(value) < min_value:
+        return 1, f"{field_label} must be a whole number of at least {min_value}."
 
     return int(value), None
 
@@ -48,19 +48,66 @@ def cards_fit_in_shoe(cards: list[str], num_of_decks: int) -> bool:
     return all(count <= 4 * num_of_decks for count in Counter(cards).values())
 
 
+def round_is_complete(
+    player_card_values: list[str], locked_player_card_indices: set[int], dealer_card: str, dealer_card_locked: bool
+) -> bool:
+    return (
+        bool(player_card_values)
+        and all(card.strip() for card in player_card_values)
+        and all(index in locked_player_card_indices for index in range(1, len(player_card_values) + 1))
+        and bool(dealer_card.strip())
+        and dealer_card_locked
+    )
+
+
+def store_round_state(
+    num_of_decks: int,
+    num_players: int,
+    player_card_values: list[str],
+    dealer_card: str,
+    table_locked: bool,
+    locked_player_card_indices: set[int],
+    dealer_card_locked: bool,
+) -> None:
+    session["round_state"] = {
+        "num_of_decks": num_of_decks,
+        "num_players": num_players,
+        "player_card_values": player_card_values,
+        "dealer_card": dealer_card,
+        "table_locked": table_locked,
+        "locked_player_card_indices": sorted(locked_player_card_indices),
+        "dealer_card_locked": dealer_card_locked,
+    }
+
+
 @app.route("/", methods=["GET", "POST"])
 def home():
     num_of_decks: int = 1
-    num_players: int = 1
+    num_players: int = 0
     user_hand: list[str] = []
     dealer_card: str = ""
     player_card_values: list[str] = ["", ""]
     table_locked: bool = False
     locked_player_card_indices: set[int] = set()
     dealer_card_locked: bool = False
+    round_complete: bool = False
+    can_edit_players: bool = session.get("can_edit_players", False)
     errors: dict[str, str] = {}
     prediction_log: list[dict[str, str | float]] = session.get("prediction_log", [])
     discarded_cards: list[str] = session.get("discarded_cards", [])
+
+    if request.method == "GET":
+        round_state = session.get("round_state", {})
+        num_of_decks = round_state.get("num_of_decks", num_of_decks)
+        num_players = round_state.get("num_players", num_players)
+        player_card_values = round_state.get("player_card_values", player_card_values)
+        dealer_card = round_state.get("dealer_card", dealer_card)
+        table_locked = round_state.get("table_locked", table_locked)
+        locked_player_card_indices = set(round_state.get("locked_player_card_indices", []))
+        dealer_card_locked = round_state.get("dealer_card_locked", dealer_card_locked)
+        round_complete = round_is_complete(
+            player_card_values, locked_player_card_indices, dealer_card, dealer_card_locked
+        )
 
     if request.method == "POST":
         if request.form.get("action") == "reset":
@@ -124,10 +171,21 @@ def home():
             elif submitted_card == "dealer-card" and not dealer_card.strip():
                 errors["dealer_card"] = "Dealer upcard cannot be empty."
 
+            known_cards = discarded_cards + user_hand + ([dealer_card] if dealer_card else [])
+            if not errors and not cards_fit_in_shoe(known_cards, num_of_decks):
+                errors["round_statistics"] = "The submitted cards exceed the cards available in this shoe."
+
             if request.form.get("action") == "new_round":
-                cards_to_discard = user_hand + ([dealer_card] if dealer_card else [])
-                if not cards_fit_in_shoe(discarded_cards + cards_to_discard, num_of_decks):
-                    errors["round_statistics"] = "The discarded cards exceed the cards available in this shoe."
+                if not round_is_complete(
+                    player_card_values, locked_player_card_indices, dealer_card, dealer_card_locked
+                ):
+                    errors["round_statistics"] = (
+                        "Submit every player card and the dealer upcard before starting a new round."
+                    )
+
+            round_complete = round_is_complete(
+                player_card_values, locked_player_card_indices, dealer_card, dealer_card_locked
+            )
 
         if errors:
             return (
@@ -141,6 +199,8 @@ def home():
                     table_locked=table_locked,
                     locked_player_card_indices=locked_player_card_indices,
                     dealer_card_locked=dealer_card_locked,
+                    round_complete=round_complete,
+                    can_edit_players=can_edit_players,
                     winning_percent=None,
                     prediction_log=prediction_log,
                     errors=errors,
@@ -162,6 +222,9 @@ def home():
             player_card_values = ["", ""]
             locked_player_card_indices = set()
             dealer_card_locked = False
+            round_complete = False
+            can_edit_players = True
+            session["can_edit_players"] = can_edit_players
         elif is_round_statistics_submission:
             submitted_card = request.form.get("submitted_card", "")
             if submitted_card.startswith("player-card-"):
@@ -170,11 +233,14 @@ def home():
                     locked_player_card_indices.add(int(card_index))
             elif submitted_card == "dealer-card":
                 dealer_card_locked = True
+            round_complete = round_is_complete(
+                player_card_values, locked_player_card_indices, dealer_card, dealer_card_locked
+            )
         else:
             table_locked = True
 
     winning_percent: float | None = None
-    if len(user_hand) >= 2 and dealer_card:
+    if request.method == "POST" and round_complete:
         winning_percent = predictor.run_predictor(
             num_of_decks, num_players, user_hand, dealer_card, discarded_cards
         )
@@ -188,6 +254,20 @@ def home():
         )
         prediction_log = prediction_log[-PREDICTION_LOG_LIMIT:]
         session["prediction_log"] = prediction_log
+        can_edit_players = False
+        session["can_edit_players"] = can_edit_players
+
+    if request.method == "POST":
+        store_round_state(
+            num_of_decks,
+            num_players,
+            player_card_values,
+            dealer_card,
+            table_locked,
+            locked_player_card_indices,
+            dealer_card_locked,
+        )
+        return redirect(url_for("home"))
 
     return render_template(
         "index.html",
@@ -200,6 +280,8 @@ def home():
         table_locked=table_locked,
         locked_player_card_indices=locked_player_card_indices,
         dealer_card_locked=dealer_card_locked,
+        round_complete=round_complete,
+        can_edit_players=can_edit_players,
         winning_percent=winning_percent,
         prediction_log=prediction_log,
         errors=errors,

@@ -10,7 +10,7 @@
     </head>
     <body>
         <main class="min-h-screen bg-base-200 p-4 sm:p-6 lg:p-8">
-            <div class="mx-auto max-w-7xl">
+            <div class="mx-auto max-w-7xl" data-reset-session-on-new-visit>
             <div class="mb-6 flex items-center justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">BlackjackPredictor</h1>
@@ -33,7 +33,7 @@
                             </svg>
                         </span>
                     </button>
-                    <form method="post">
+                    <form method="post" data-session-reset-form>
                         <button class="btn btn-error btn-sm sm:btn-md" type="submit" name="action" value="reset">Reset</button>
                     </form>
                 </div>
@@ -70,18 +70,33 @@
                         <label class="label" for="num-players">
                             <span class="label-text font-medium">Players Before You</span>
                         </label>
-                        <input
-                            class="input input-bordered w-full{% if errors.get('num_players') %} input-error{% endif %}"
-                            id="num-players"
-                            name="num_players"
-                            type="number"
-                            min="0"
-                            step="1"
-                            value="{{ num_players }}"
-                            {% if errors.get('num_players') %}aria-describedby="num-players-error"{% endif %}
-                            {% if table_locked %}readonly aria-readonly="true"{% endif %}
-                            required
-                        >
+                        <div class="relative">
+                            <input
+                                class="input input-bordered w-full pr-10{% if errors.get('num_players') %} input-error{% endif %}"
+                                id="num-players"
+                                name="num_players"
+                                type="number"
+                                min="0"
+                                step="1"
+                                value="{{ num_players }}"
+                                {% if errors.get('num_players') %}aria-describedby="num-players-error"{% endif %}
+                                {% if table_locked %}readonly aria-readonly="true"{% endif %}
+                                required
+                            >
+                            {% if can_edit_players %}
+                            <button
+                                class="btn btn-ghost btn-sm absolute inset-y-0 right-1 my-auto"
+                                type="button"
+                                data-edit-players
+                                aria-label="Edit players before you"
+                                aria-controls="num-players"
+                            >
+                                <svg aria-hidden="true" class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="m14.69 5.31 4 4M3 21l3.75-.75L19.31 7.69a2.83 2.83 0 0 0-4-4L2.75 16.25 2 20.99Z" stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                            </button>
+                            {% endif %}
+                        </div>
                         {% if errors.get('num_players') %}
                         <p class="label-text-alt text-error" id="num-players-error" role="alert">{{ errors['num_players'] }}</p>
                         {% endif %}
@@ -119,18 +134,25 @@
                                 {% endif %}
                             </label>
                             <div class="flex gap-2">
-                                <input
-                                    class="input input-bordered min-w-0 flex-1{% if errors.get('player_card_' ~ loop.index) %} input-error{% endif %}{% if loop.index in locked_player_card_indices %} bg-base-200 text-base-content/70{% endif %}"
-                                    id="player-card-{{ loop.index }}"
-                                    name="player_cards"
-                                    type="text"
-                                    list="card-options"
-                                    value="{{ card }}"
-                                    placeholder="Search Cards"
-                                    autocomplete="off"
-                                    {% if errors.get('player_card_' ~ loop.index) %}aria-describedby="player-card-{{ loop.index }}-error"{% endif %}
-                                    {% if loop.index in locked_player_card_indices %}readonly aria-readonly="true"{% endif %}
-                                >
+                                <div class="relative min-w-0 flex-1" data-card-combobox>
+                                    <input
+                                        class="input input-bordered w-full{% if errors.get('player_card_' ~ loop.index) %} input-error{% endif %}{% if loop.index in locked_player_card_indices %} bg-base-200 text-base-content/70{% endif %}"
+                                        id="player-card-{{ loop.index }}"
+                                        name="player_cards"
+                                        type="text"
+                                        value="{{ card }}"
+                                        placeholder="Search Cards"
+                                        autocomplete="off"
+                                        role="combobox"
+                                        aria-autocomplete="list"
+                                        aria-controls="player-card-options-{{ loop.index }}"
+                                        aria-expanded="false"
+                                        data-card-input
+                                        {% if errors.get('player_card_' ~ loop.index) %}aria-describedby="player-card-{{ loop.index }}-error"{% endif %}
+                                        {% if loop.index in locked_player_card_indices %}readonly aria-readonly="true"{% endif %}
+                                    >
+                                    <div class="absolute z-10 mt-1 hidden max-h-52 w-full overflow-y-auto rounded-box border border-base-300 bg-base-100 p-1 shadow-lg" id="player-card-options-{{ loop.index }}" role="listbox" data-card-menu></div>
+                                </div>
                                 <button class="btn btn-primary btn-sm self-center" type="submit" name="submitted_card" value="player-card-{{ loop.index }}" data-card-submit {% if loop.index in locked_player_card_indices or not card|trim %}disabled{% endif %}>Submit</button>
                             </div>
                             {% if errors.get('player_card_' ~ loop.index) %}
@@ -158,18 +180,25 @@
                             {% endif %}
                         </label>
                         <div class="flex gap-2">
-                            <input
-                                class="input input-bordered min-w-0 flex-1{% if errors.get('dealer_card') %} input-error{% endif %}{% if dealer_card_locked %} bg-base-200 text-base-content/70{% endif %}"
-                                id="dealer-card"
-                                name="dealer_card"
-                                type="text"
-                                list="card-options"
-                                value="{{ dealer_card }}"
-                                placeholder="Search Cards"
-                                autocomplete="off"
-                                {% if errors.get('dealer_card') %}aria-describedby="dealer-card-error"{% endif %}
-                                {% if dealer_card_locked %}readonly aria-readonly="true"{% endif %}
-                            >
+                            <div class="relative min-w-0 flex-1" data-card-combobox>
+                                <input
+                                    class="input input-bordered w-full{% if errors.get('dealer_card') %} input-error{% endif %}{% if dealer_card_locked %} bg-base-200 text-base-content/70{% endif %}"
+                                    id="dealer-card"
+                                    name="dealer_card"
+                                    type="text"
+                                    value="{{ dealer_card }}"
+                                    placeholder="Search Cards"
+                                    autocomplete="off"
+                                    role="combobox"
+                                    aria-autocomplete="list"
+                                    aria-controls="dealer-card-options"
+                                    aria-expanded="false"
+                                    data-card-input
+                                    {% if errors.get('dealer_card') %}aria-describedby="dealer-card-error"{% endif %}
+                                    {% if dealer_card_locked %}readonly aria-readonly="true"{% endif %}
+                                >
+                                <div class="absolute z-10 mt-1 hidden max-h-52 w-full overflow-y-auto rounded-box border border-base-300 bg-base-100 p-1 shadow-lg" id="dealer-card-options" role="listbox" data-card-menu></div>
+                            </div>
                             <button class="btn btn-primary btn-sm self-center" type="submit" name="submitted_card" value="dealer-card" data-card-submit {% if dealer_card_locked or not dealer_card|trim %}disabled{% endif %}>Submit</button>
                         </div>
                         {% if errors.get('dealer_card') %}
@@ -177,15 +206,11 @@
                         {% endif %}
                     </div>
 
-                    <button class="btn btn-outline btn-secondary mt-2" type="submit" name="action" value="new_round">New Round</button>
+                    <button class="btn btn-outline btn-secondary mt-2" type="submit" name="action" value="new_round" data-new-round {% if not round_complete %}disabled{% endif %}>New Round</button>
                 </fieldset>
             </form>
 
-            <datalist id="card-options">
-                {% for card in card_options %}
-                <option value="{{ card }}"></option>
-                {% endfor %}
-            </datalist>
+            <script id="card-options" type="application/json">{{ card_options | tojson }}</script>
                 </div>
 
                 <aside aria-labelledby="prediction-title" class="w-full lg:sticky lg:top-8">
@@ -203,7 +228,7 @@
                         {% else %}
                         <div class="chat chat-start">
                             <div class="rounded-box border border-dashed border-base-300 bg-base-200 p-4 text-sm text-base-content/70">
-                                <p class="font-semibold">Winning Percentage: {{ '%.1f'|format(prediction['winning_percent']) }}%</p>
+                                <p class="font-semibold">Chance of Winning: {{ '%.1f'|format(prediction['winning_percent']) }}%</p>
                                 <p class="mt-1 text-sm">Player: {{ prediction['user_hand'] }} · Dealer: {{ prediction['dealer_card'] }}</p>
                             </div>
                         </div>
