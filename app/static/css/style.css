@@ -1,28 +1,4 @@
-@import "tailwindcss";
-@plugin "daisyui";
-
 body {
-    background-color: rgb(40, 40, 40);
-    font-family: Helvetica, sans-serif;
-    align-content: center;
+    min-height: 100vh;
+    font-family: ui-sans-serif, system-ui, sans-serif;
 }
-
-h1 {
-    text-align: center;
-    font-size: 3rem;
-    color: rgb(255, 255, 255);
-}
-
-/*.table-data {
-
-} */
-
-.num-decks {
-    height: auto;
-}
-
-/*.round-data {
-    
-} */
-
-

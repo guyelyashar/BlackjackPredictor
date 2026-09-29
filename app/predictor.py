@@ -44,11 +44,6 @@ class Predictor():
             for _ in range(num_cards_remove):
                 simulation_deck.pop_card()
 
-        # Set User And Dealer Initial Cards
-
-        #for i in range(1, 3):
-        #    user_hand.append(user_input_card := self.card_input_smart("Input Card " + str(i) + ": "))
-
         winning_percent: float = self.play_games(user_hand, dealer_card, simulation_deck)
 
         return winning_percent
